@@ -5,6 +5,8 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import SeatGrid from '../components/SeatGrid'
 import useAuth from '../hooks/useAuth'
 import { getEvent, getOccupiedSeats, purchaseTicket } from '../services/api'
+import Modal from '../components/Modal'
+import Ticket from '../components/Ticket'
 
 export default function EventDetail() {
   const { id } = useParams()
@@ -16,6 +18,8 @@ export default function EventDetail() {
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [show, setShow] = useState(false)
+  const [ticket, setTicket] = useState(null)
 
   useEffect(() => {
     (async () => {
@@ -41,6 +45,10 @@ export default function EventDetail() {
     })()
   }, [id])
 
+  const onClose = () => {
+    setShow(!show)
+  }
+
   const onBuy = async () => {
     if (!isAuthenticated()) {
       setError('Inicia sesión para comprar.')
@@ -56,7 +64,10 @@ export default function EventDetail() {
       const seat = item?.seatMap?.type === 'grid' ? selected : { row: 1, col: 1 }
 
       const res = await purchaseTicket({ eventId: item._id, seat })
-      setSuccess(`Compra exitosa. Ticket ID: ${res?.id || res?._id || '—'}`)
+      setTicket(res)
+      setShow(true)
+      // setSuccess(`Compra exitosa. Ticket ID: ${res?.id || res?._id || '—'}`)
+      setSuccess(`Compra exitosa.`)
 
       if (item?.seatMap?.type === 'grid' && selected) {
         setOccupied((prev) => [...prev, selected])
@@ -133,6 +144,13 @@ export default function EventDetail() {
           {buying ? 'Procesando...' : 'Comprar'}
         </button>
       </Card>
+      {ticket && (
+        <Modal 
+          show={show}
+          onClose={onClose}
+          children={<Ticket event={item} ticket={ticket} />}
+        />
+      )}
     </div>
   )
 }
