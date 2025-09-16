@@ -11,6 +11,7 @@ export default function Scan() {
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [hint, setHint] = useState(null)
+  const [success, setSuccess] = useState(null)
 
   const handleImage = async (file) => {
     if (!file) return
@@ -43,17 +44,19 @@ export default function Scan() {
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true); setError(null); setResult(null)
+    setLoading(true); setError(null); setResult(null); setSuccess(null)
     try {
       if (tokenJson.trim()) {
         const res = await scanTicket({ token: tokenJson.trim() })
-        setResult(res)
+        setSuccess(`Ticket validado exitosamente.`)
+        // setResult(res)
       } else if (ticketId.trim()) {
         setError('Este flujo espera token JSON firmado. Solo ticketId requiere un endpoint alterno en backend.')
       } else {
         setError('Proporciona un token JSON o un ticketId.')
       }
     } catch (e2) {
+      console.log(e2)
       setError(e2.message)
     } finally {
       setLoading(false)
@@ -80,15 +83,20 @@ export default function Scan() {
           </div>
           {hint && <p className="text-amber-600 text-sm">{hint}</p>}
           {error && <p className="text-red-600">{error}</p>}
-          {result && (
+          {/* {result && (
             <pre className="text-sm bg-black/5 dark:bg-white/5 p-3 rounded overflow-auto">{JSON.stringify(result, null, 2)}</pre>
-          )}
+          )} */}
+
+        {success && <p className="text-green-600 mt-4">{success}</p>}
+
+
+
           <button className="btn btn-primary" disabled={loading}>{loading ? 'Validando...' : 'Validar'}</button>
         </form>
-        <p className="text-xs opacity-70 mt-4">
+        {/* <p className="text-xs opacity-70 mt-4">
           Nota: si el QR solo tiene <code>ticketId</code>, tu backend debe exponer un endpoint alterno (p.ej. <code>POST /scan-by-id</code>)
           o bien generar el QR con token firmado (campos <code>t</code> y <code>s</code>).
-        </p>
+        </p>*/}
       </Card>
     </div>
   )
