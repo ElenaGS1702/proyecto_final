@@ -1,113 +1,123 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import Card from '../components/Card'
-import LoadingSpinner from '../components/LoadingSpinner'
-import SeatGrid from '../components/SeatGrid'
-import useAuth from '../hooks/useAuth'
-import { getEvent, getOccupiedSeats, purchaseTicket } from '../services/api'
-import Modal from '../components/Modal'
-import Ticket from '../components/Ticket'
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import Card from "../components/Card";
+import LoadingSpinner from "../components/LoadingSpinner";
+import SeatGrid from "../components/SeatGrid";
+import useAuth from "../hooks/useAuth";
+import { getEvent, getOccupiedSeats, purchaseTicket } from "../services/api";
+import Modal from "../components/Modal";
+import Ticket from "../components/Ticket";
 
 export default function EventDetail() {
-  const { id } = useParams()
-  const { isAuthenticated } = useAuth()
-  const [item, setItem] = useState(null)
-  const [occupied, setOccupied] = useState([])
-  const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [buying, setBuying] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [show, setShow] = useState(false)
-  const [ticket, setTicket] = useState(null)
+  const { id } = useParams();
+  const { isAuthenticated } = useAuth();
+  const [item, setItem] = useState(null);
+  const [occupied, setOccupied] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [buying, setBuying] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [show, setShow] = useState(false);
+  const [ticket, setTicket] = useState(null);
 
   useEffect(() => {
     (async () => {
-      setLoading(true); setError(null)
+      setLoading(true);
+      setError(null);
       try {
         // 1) Primero trae el evento
-        const evRes = await getEvent(id)
-        const ev = evRes?.item || null
-        setItem(ev)
+        const evRes = await getEvent(id);
+        const ev = evRes?.item || null;
+        setItem(ev);
 
         // 2) Sólo pide ocupados si es grid
-        if (ev?.seatMap?.type === 'grid') {
-          const occRes = await getOccupiedSeats(id)
-          setOccupied(occRes?.occupied || [])
+        if (ev?.seatMap?.type === "grid") {
+          const occRes = await getOccupiedSeats(id);
+          setOccupied(occRes?.occupied || []);
         } else {
-          setOccupied([]) // GA: no aplica
+          setOccupied([]); // GA: no aplica
         }
       } catch (e) {
-        setError(e.message)
+        setError(e.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    })()
-  }, [id])
+    })();
+  }, [id]);
 
   const onClose = () => {
-    setShow(!show)
-  }
+    setShow(!show);
+  };
 
   const onBuy = async () => {
     if (!isAuthenticated()) {
-      setError('Inicia sesión para comprar.')
-      return
+      setError("Inicia sesión para comprar.");
+      return;
     }
-    if (item?.seatMap?.type === 'grid' && !selected) {
-      setError('Selecciona un asiento.')
-      return
+    if (item?.seatMap?.type === "grid" && !selected) {
+      setError("Selecciona un asiento.");
+      return;
     }
 
-    setBuying(true); setError(null); setSuccess(null)
+    setBuying(true);
+    setError(null);
+    setSuccess(null);
     try {
-      const seat = item?.seatMap?.type === 'grid' ? selected : { row: 1, col: 1 }
+      const seat =
+        item?.seatMap?.type === "grid" ? selected : { row: 1, col: 1 };
 
-      const res = await purchaseTicket({ eventId: item._id, seat })
-      setTicket(res)
-      setShow(true)
+      const res = await purchaseTicket({ eventId: item._id, seat });
+      setTicket(res);
+      setShow(true);
       // setSuccess(`Compra exitosa. Ticket ID: ${res?.id || res?._id || '—'}`)
-      setSuccess(`Compra exitosa.`)
+      setSuccess(`Compra exitosa.`);
 
-      if (item?.seatMap?.type === 'grid' && selected) {
-        setOccupied((prev) => [...prev, selected])
-        setSelected(null)
+      if (item?.seatMap?.type === "grid" && selected) {
+        setOccupied((prev) => [...prev, selected]);
+        setSelected(null);
       }
     } catch (e) {
       if (/occupied|duplicate|already/i.test(e.message)) {
-        setError('Ese asiento ya fue tomado. Elige otro.')
+        setError("Ese asiento ya fue tomado. Elige otro.");
         try {
-          if (item?.seatMap?.type === 'grid') {
-            const occ = await getOccupiedSeats(id)
-            setOccupied(occ?.occupied || [])
+          if (item?.seatMap?.type === "grid") {
+            const occ = await getOccupiedSeats(id);
+            setOccupied(occ?.occupied || []);
           }
         } catch {}
       } else {
-        setError(e.message)
+        setError(e.message);
       }
     } finally {
-      setBuying(false)
+      setBuying(false);
     }
-  }
+  };
 
-  if (loading) return <LoadingSpinner />
-  if (error && !item) return <p className="text-red-600">{error}</p>
-  if (!item) return <p>No se encontró el evento.</p>
+  if (loading) return <LoadingSpinner />;
+  if (error && !item) return <p className="text-red-600">{error}</p>;
+  if (!item) return <p>No se encontró el evento.</p>;
 
-  const isGrid = item.seatMap?.type === 'grid'
-  const rows = Number(item.seatMap?.rows || 1)
-  const cols = Number(item.seatMap?.cols || 1)
+  const isGrid = item.seatMap?.type === "grid";
+  const rows = Number(item.seatMap?.rows || 1);
+  const cols = Number(item.seatMap?.cols || 1);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card className="p-0 overflow-hidden">
-        <img src={item.imageUrl} alt={item.title} className="w-full h-64 object-cover" />
+        <img
+          src={item.imageUrl}
+          alt={item.title}
+          className="w-full h-64 object-cover"
+        />
         <div className="p-6">
           <h1 className="text-2xl font-semibold">{item.title}</h1>
           <p className="opacity-80">{new Date(item.date).toLocaleString()}</p>
           <p className="opacity-80 mb-2">{item.venue}</p>
           <p className="mb-4">{item.description}</p>
-          <div className="text-xl font-semibold">${item.price?.toLocaleString('es-MX')}</div>
+          <div className="text-xl font-semibold">
+            ${item.price?.toLocaleString("es-MX")}
+          </div>
         </div>
       </Card>
 
@@ -117,8 +127,21 @@ export default function EventDetail() {
         {isGrid ? (
           <>
             <p className="text-sm opacity-80 mb-3">
-              Selecciona un asiento disponible. Los ocupados aparecen deshabilitados.
+              Selecciona un asiento disponible. Los ocupados aparecen
+              deshabilitados.
             </p>
+            <div className="flex flex-row justify-around w-full mb-3">
+              <div className="flex flex-row">
+                <div className="w-9 h-9 rounded-md text-xs flex items-center justify-center border mb-2 bg-white dark:bg-green-600 border-slate-300 dark:border-slate-700"></div>
+                <span className="text-sm opacity-80 text-center ml-3">
+                  Disponible
+                </span>
+              </div>
+              <div className="flex flex-row">
+                <div className="w-9 h-9 rounded-md text-xs flex items-center justify-center border mb-2 bg-slate-300 dark:bg-slate-800 border-slate-400 dark:border-slate-700 cursor-not-allowed opacity-60"></div>
+                <span className="text-sm opacity-80 ml-3">Ocupado</span>
+              </div>
+            </div>
             <SeatGrid
               rows={rows}
               cols={cols}
@@ -129,7 +152,8 @@ export default function EventDetail() {
           </>
         ) : (
           <p className="text-sm opacity-80 mb-3">
-            Este evento es de admisión general (GA). Se asignará lugar al ingresar.
+            Este evento es de admisión general (GA). Se asignará lugar al
+            ingresar.
           </p>
         )}
 
@@ -141,16 +165,16 @@ export default function EventDetail() {
           onClick={onBuy}
           disabled={buying || (isGrid && !selected)}
         >
-          {buying ? 'Procesando...' : 'Comprar'}
+          {buying ? "Procesando..." : "Comprar"}
         </button>
       </Card>
       {ticket && (
-        <Modal 
+        <Modal
           show={show}
           onClose={onClose}
           children={<Ticket event={item} ticket={ticket} />}
         />
       )}
     </div>
-  )
+  );
 }
