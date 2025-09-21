@@ -49,3 +49,7 @@ export async function checkIn(ticket) {
 export async function findTicketById(id) {
   return Ticket.findById(id);
 }
+
+export function findTicketsByEventId(eventId) {
+  return Ticket.find({ event: eventId });
+}
